@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Demo RGB - Forest6</title>
+    <script src="../dist/forest.js"></script>
+    <style>
+        body {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Demo RGB - Forest6</h1>
+    <p>1st click red, 2nd click green, 3rd click blue, repeat :)</p>
+    <canvas width="640" height="640"></canvas>
+    <script>
+        var canvas = document.querySelector('canvas');
+        var context = canvas.getContext('2d');
+
+        var data = [[122,590],[527,330],[147,83],[145,589],[512,332],[200,145],[93,576],[559,337],[159,81],[124,555],[455,339],[105,67],[111,570],[511,331],[68,80]];
+        var label = ["red","green","blue","red","green","blue","red","green","blue","red","green","blue","red","green","blue"];
+        var forest = new Forest();
+        function render () {
+            console.log('working...')
+            forest.train(data, label, {depth: 2, tries: 4, trees: 8})
+            var image = new Uint8ClampedArray(canvas.width*canvas.height*4);
+            for (var x = 0; x < canvas.width; x+=2)
+                for (var y = 0; y < canvas.height; y+=2)
+                {
+                    var color = forest.predict([x,y]);
+                    image[(y*canvas.width+x)*4+0] = 0;
+                    image[(y*canvas.width+x)*4+1] = 0;
+                    image[(y*canvas.width+x)*4+2] = 0;
+                    for (var i = 0; i < color.length; i++) {
+                        image[(y*canvas.width+x)*4+0] += (color[i].label == 'red' ? 255 : 0)*color[i].probability;
+                        image[(y*canvas.width+x)*4+1] += (color[i].label == 'green' ? 255 : 0)*color[i].probability;
+                        image[(y*canvas.width+x)*4+2] += (color[i].label == 'blue' ? 255 : 0)*color[i].probability;
+                    }
+                    image[(y*canvas.width+x)*4+3] = 255;
+                }
+            context.putImageData(new ImageData(image, canvas.width, canvas.height),0,0);
+            for (var i = 0; i < data.length; i++)
+            {
+                context.fillStyle = label[i];
+                context.fillRect(data[i][0]-2, data[i][1]-2, 4, 4)
+            }
+        }
+        render();
+
+        var w = 0;
+        var wheel = ['red', 'green', 'blue']
+        var timeout = false;
+        canvas.onclick = function (event) {
+            var x = event.x - canvas.offsetLeft;
+            var y = event.y - canvas.offsetTop;
+            data.push([x, y]);
+            label.push(wheel[w]);
+            context.fillStyle = wheel[w];
+            context.fillRect(x-2, y-2, 4, 4)
+
+            w = (w + 1) % wheel.length;
+            if (timeout)
+                window.clearTimeout(timeout);
+            timeout = setTimeout(render, 1000);
+        }
+    </script>
+</body>
+</html>

@@ -21,10 +21,17 @@ assert.equal(forest.predict([1,0,1])[0].label, "e");
 assert.equal(forest.predict([1,1,0])[0].label, "f");
 ```
 
+## Demo
+ - This example (see demo/demo_rgb.htm) allows users to add red, green, or blue
+   points to the map. A decision tree learns those data points and predicts the
+   colors for the rest of the map.
+
+   ![rgb demo](demo/demo_rgb.png)
+
 ## Todo
- - k-fold cross-validation
- - performance comparisons
- - documentation + examples
+- k-fold cross-validation
+- performance comparisons
+- documentation + examples
 
 ## License
 The MIT License
