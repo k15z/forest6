@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Demo Object Detection - Forest6</title>
+    <script src="../dist/forest.js"></script>
+    <style>
+        #capture, #results {
+            vertical-align: top;
+            display: inline-block;
+        }
+
+        #capture button {
+            height: 24px;
+            min-width: 80px;
+            border-radius: 3px;
+            border: 0;
+            color: white;
+            background-color: dodgerblue;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        #capture button:hover {
+            background-color: royalblue;
+        }
+    </style>
+</head>
+<body>
+    <div id="capture">
+        <video autoplay="true" height="240"></video>
+        <div id="labels"></div>
+        <form>
+            <input type="text" placeholder="label"></input>
+            <input id="add" type="button" value="add"></input> or
+            <input id="detect" type="button" value="detect"></input>
+        </form>
+    </div>
+    <div id="results">
+    </div>
+    <script>
+        function vectorize () {
+            var canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth / 8;
+            canvas.height = video.videoHeight / 8;
+            var context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return context.getImageData(0, 0, canvas.width, canvas.height).data;
+        }
+
+        var data = [];
+        var label = [];
+        function capture (name) {
+            data.push(vectorize());
+            label.push(name);
+            console.log('Added ' + name + '.');
+        }
+
+        var forest = new Forest();
+        function detect () {
+            forest.train(data, label);
+            console.log('Trained.');
+            var result = forest.predict(vectorize());
+            console.log(result);
+            var audio = new Audio(result[0].label+'.mp3');
+            audio.play();
+        }
+
+        navigator.mediaDevices = navigator.mediaDevices || {};
+        navigator.mediaDevices.getUserMedia = navigator.mediaDevices.getUserMedia ||
+            navigator.getUserMedia ||
+            navigator.mozGetUserMedia ||
+            navigator.webkitGetUserMedia;
+        var video = document.querySelector('video');
+        navigator.mediaDevices.getUserMedia({ video: true }).then(function(mediaStream) {
+            video.src = window.URL.createObjectURL(mediaStream);
+        });
+        document.querySelector('#add').onclick = function () {
+            var value = document.querySelector('input[type=text]').value;
+            document.querySelector('#labels').innerHTML += '<button onclick="capture(\''+value+'\')">'+value+'</button>'
+            document.querySelector('input[type=text]').value = '';
+        }
+        document.querySelector('#detect').onclick = detect;
+    </script>
+</body>
+</html>

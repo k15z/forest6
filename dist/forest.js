@@ -79,9 +79,9 @@ function Forest (model) {
      */
     function train (data, label, options) {
         var options = {
+            tries: ((options && options.tries) ? options.tries : 2),
             depth: ((options && options.depth) ? options.depth : 4),
-            tries: ((options && options.tries) ? options.tries : 16),
-            trees: ((options && options.trees) ? options.trees : 256)
+            trees: ((options && options.trees) ? options.trees : 8)
         }
 
         model.length = 0;
@@ -197,17 +197,12 @@ function Forest (model) {
         if (!ix)
             ix = _range(label.length)
 
-        var total = 0;
-        var count = _count(label, ix);
-        for (var key in count)
-            if (count.hasOwnProperty(key))
-                total += count[key];
-
         var prob = 0.0;
         var entropy = 0.0;
+        var count = _count(label, ix);
         for (var key in count)
             if (count.hasOwnProperty(key)) {
-                prob = count[key]/total;
+                prob = count[key]/ix.length;
                 entropy += prob * Math.log(prob);
             }
         return -entropy;
