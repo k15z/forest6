@@ -74,3 +74,18 @@ QUnit.test("forest._util._entropy", function( assert ) {
     assert.ok(forest._util._entropy(["a", "a", "b"]) == forest._util._entropy(["a", "b", "b"]));
     assert.ok(forest._util._entropy(["a", "a", "a"], [1,2]) < forest._util._entropy(["a", "a", "b"],[1,2]));
 });
+
+QUnit.test("forest._util._partition", function( assert ) {
+    var forest = new Forest();
+    var ix = forest._util._range(100);
+
+    var partition = forest._util._partition(ix);
+    assert.ok(Math.abs(partition.ix1.length - 50) < 10);
+    assert.ok(Math.abs(partition.ix2.length - 50) < 10);
+    assert.ok(partition.ix1.length + partition.ix2.length == ix.length);
+
+    var partition = forest._util._partition(ix, 0.7);
+    assert.ok(Math.abs(partition.ix1.length - 70) < 10);
+    assert.ok(Math.abs(partition.ix2.length - 30) < 10);
+    assert.ok(partition.ix1.length + partition.ix2.length == ix.length);
+});

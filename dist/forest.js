@@ -79,16 +79,20 @@ function Forest (model) {
      */
     function train (data, label, options) {
         var options = {
-            tries: ((options && options.tries) ? options.tries : 2),
             depth: ((options && options.depth) ? options.depth : 4),
-            trees: ((options && options.trees) ? options.trees : 8)
+            tries: ((options && options.tries) ? options.tries : 8),
+            trees: ((options && options.trees) ? options.trees : 16)
         }
 
+        var overall_score = 0;
+        var overall_total = 0;
         model.length = 0;
         for (var m = 0; m < options.trees; m++) {
+            var partition = _partition(_range(data.length), 0.7);
+
             var tree = {};
             tree.depth = options.depth;
-            tree.all_ix = _range(data.length);
+            tree.all_ix = partition.ix1;
 
             var queue = [];
             queue.push(tree);
@@ -141,8 +145,38 @@ function Forest (model) {
                     queue.push(node.right);
                 }
             }
-            model.push(tree);
+
+            var score = 0, total = 0;
+            var test_ix = partition.ix2;
+            for (var x = 0; x < test_ix.length; x++) {
+                var expected = label[test_ix[x]];
+                var vector = data[test_ix[x]]
+
+                var node = tree;
+                while (!node.leaf)
+                    if (data[node.index] < node.threshold)
+                        node = node.left;
+                    else
+                        node = node.right;
+                var best = expected;
+                for (var key in node.label)
+                    if (node.label.hasOwnProperty(key)) {
+                        if (node.label[key] > node.label[best])
+                            best = key;
+                    }
+                if (best == expected)
+                    score++;
+                total++;
+            }
+            if (total != 0 && score/total < 0.8)
+                m--;
+            else {
+                model.push(tree);
+                overall_score += score;
+                overall_total += total;
+            }
         }
+        console.log("Overall: " + overall_score + "/" + overall_total)
     }
 
     /**
@@ -208,6 +242,21 @@ function Forest (model) {
         return -entropy;
     }
 
+    /**
+     * Randomly split the ix array into two partitions.
+     */
+    function _partition (ix, split) {
+        if (!split)
+            split = 0.5;
+        var ix1 = [], ix2 = [];
+        for (var i = 0; i < ix.length; i++)
+            if (Math.random() < split)
+                ix1.push(ix[i]);
+            else
+                ix2.push(ix[i]);
+        return {ix1: ix1, ix2: ix2};
+    }
+
     var exports = {_util: {}};
     exports.model = model;
     exports.toJSON = toJSON;
@@ -217,5 +266,6 @@ function Forest (model) {
     exports._util._range = _range;
     exports._util._count = _count;
     exports._util._entropy = _entropy;
+    exports._util._partition = _partition;
     return exports;
 }

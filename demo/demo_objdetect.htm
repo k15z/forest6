@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
     <title>Demo Object Detection - Forest6</title>
-    <script src="../dist/forest.js"></script>
+    <script src="../src/forest.js"></script>
     <style>
         #capture, #results {
             vertical-align: top;
@@ -40,42 +40,92 @@
     <div id="results">
     </div>
     <script>
+        function lbp(pixel, width, height) {
+            var pattern = [];
+            for (var x = 0; x < width; x++)
+                for (var y = 0; y < height; y++) {
+                    for (var c = 0; c < 3; c++) {
+                        var value = 0;
+
+                        var center = pixel[((y)*width + (x))*4+c];
+                        if (y - 1 >= 0 && x - 1 >= 0) {
+                            if (pixel[((y - 1)*height + (x - 1))*4+c] > center)
+                                value = value | (0x1 << 0)
+                        }
+                        if (y - 1 >= 0) {
+                            if (pixel[((y - 1)*width + (x))*4+c] > center)
+                                value = value | (0x1 << 1)
+                        }
+                        if (y - 1 >= 0 && x + 1 < width) {
+                            if (pixel[((y - 1)*width + (x + 1))*4+c] > center)
+                                value = value | (0x1 << 2)
+                        }
+                        if (x + 1 < width) {
+                            if (pixel[((y)*width + (x + 1))*4+c] > center)
+                                value = value | (0x1 << 3)
+                        }
+                        if (y + 1 >= 0 && x + 1 < width) {
+                            if (pixel[((y + 1)*width + (x + 1))*4+c] > center)
+                                value = value | (0x1 << 4)
+                        }
+                        if (y + 1 < height) {
+                            if (pixel[((y + 1)*width + (x))*4+c] > center)
+                                value = value | (0x1 << 5)
+                        }
+                        if (y + 1 < height && x - 1 < width) {
+                            if (pixel[((y + 1)*width + (x - 1))*4+c] > center)
+                                value = value | (0x1 << 6)
+                        }
+                        if (x - 1 >= 0) {
+                            if (pixel[((y)*width + (x - 1))*4+c] > center)
+                                value = value | (0x1 << 7)
+                        }
+
+                        pattern.push(value);
+                    }
+                }
+            return pattern;
+        }
+
         function vectorize () {
             var canvas = document.createElement('canvas');
             canvas.width = video.videoWidth / 8;
             canvas.height = video.videoHeight / 8;
             var context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return context.getImageData(0, 0, canvas.width, canvas.height).data;
+            return lbp(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
         }
 
         var data = [];
         var label = [];
+        var changed = false;
         function capture (name) {
             data.push(vectorize());
             label.push(name);
+            changed = true;
             console.log('Added ' + name + '.');
         }
 
         var forest = new Forest();
         function detect () {
-            forest.train(data, label);
-            console.log('Trained.');
+            if (changed) {
+                forest.train(data, label, {trees: 256});
+                console.log('Trained.');
+                changed = false;
+            }
             var result = forest.predict(vectorize());
             console.log(result);
-            var audio = new Audio(result[0].label+'.mp3');
-            audio.play();
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance('This is a ' + result[0].label));
         }
 
-        navigator.mediaDevices = navigator.mediaDevices || {};
-        navigator.mediaDevices.getUserMedia = navigator.mediaDevices.getUserMedia ||
+        navigator.getUserMedia = navigator.mediaDevices.getUserMedia ||
             navigator.getUserMedia ||
             navigator.mozGetUserMedia ||
             navigator.webkitGetUserMedia;
         var video = document.querySelector('video');
-        navigator.mediaDevices.getUserMedia({ video: true }).then(function(mediaStream) {
+        navigator.getUserMedia({ video: true }, function(mediaStream) {
             video.src = window.URL.createObjectURL(mediaStream);
-        });
+        }, function(){});
         document.querySelector('#add').onclick = function () {
             var value = document.querySelector('input[type=text]').value;
             document.querySelector('#labels').innerHTML += '<button onclick="capture(\''+value+'\')">'+value+'</button>'
